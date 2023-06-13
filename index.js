@@ -38,19 +38,73 @@ const http = require('http')
 //     });
 // })();
 
+
+async function getData(url)
+{
+    let result="nothing";
+    try {
+        const {data} = await axios.get(url);
+        return data;
+    } catch (error) {
+        console.log(error)
+        result = "";
+        return result;
+    }
+    
+}
+
+function writeData(filename, data)
+{
+    fileSystem.writeFile(path.resolve(__dirname,filename), JSON.stringify(data), 'utf-8', (err)=>{
+        if (err) {
+            throw err;
+        }else{
+            console.log(`Write file ${filename} was done!`);
+        }
+    });
+}
+
+async function prepareResponse(url, filename)
+{
+    let response = "";
+    let answer = await getData(url);
+    if (answer != ""){
+        response = `Data get OK`;
+        console.log(answer);
+        writeData(filename, answer);
+    }else{
+        response = `Errors occurred while receiving data`;
+    }
+    return response;
+}
+
 // Запуск веб-сервера на порту 3000
 http
-    .createServer((request, response) => {
+    .createServer(async (request, response) => {
+        let responseText = "";
+        let url = "";
         response.setHeader("Content-Type","text/html; charset=utf-8;")
         switch (request.url) {
             case '/':
-                response.write(`Root`);
+                response.write(`<h1>Root</h1>`);
+                response.write(`<ul>`);
+                response.write(`<li><a href="/user">User</a></li>`);
+                response.write(`<li><a href="/posts">Posts</a></li>`);
+                response.write(`</ul>`);
                 break;
             case '/user':
-                response.write(`User`);
+                url = "https://jsonplaceholder.typicode.com/users";
+                responseText = await prepareResponse(url, "users.json")
+                response.write(`<h1>User</h1>`);
+                response.write(`<p>${responseText}</p>`)
+                response.write(`<a href="/">Root</a>`);
                 break;
             case '/posts':
-                response.write(`Post`);
+                url = "https://jsonplaceholder.typicode.com/posts";
+                responseText = await prepareResponse(url, "posts.json")
+                response.write(`<h1>Post</h1>`);
+                response.write(`<p>${responseText}</p>`)
+                response.write(`<a href="/">Root</a>`);
                 break;
             default:
                 response.write(`Unknown request. (${request.url})`);
